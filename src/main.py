@@ -1,63 +1,146 @@
-from flask import Flask, jsonify, request, send_file, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
 import os
 from datetime import datetime
 import logging
 
-# Import route blueprints
-from src.routes.projects import projects_bp
-from src.routes.clients import clients_bp
-from src.routes.ai_valuation import ai_valuation_bp
-from src.routes.auth import auth_bp
-
-# Import models to ensure tables are created
-from src.models.project import db as project_db
-from src.models.client import db as client_db
-from src.models.ai_valuation import db as valuation_db
-
-# Import services
-from src.services.pdf_generator import ESKLENCHENPDFGenerator
-
 def create_app():
     """Create and configure Flask application"""
-    app = Flask(__name__, static_folder='static', static_url_path='')
+    app = Flask(__name__, static_folder='../static', static_url_path='')
     
     # Configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'esklenchen-secret-key-2025')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///esklenchen.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
     
     # Enable CORS for all routes
     CORS(app, origins="*", allow_headers=["Content-Type", "Authorization"])
-    
-    # Initialize database
-    project_db.init_app(app)
-    client_db.init_app(app)
-    valuation_db.init_app(app)
     
     # Configure logging
     logging.basicConfig(level=logging.INFO)
     app.logger.setLevel(logging.INFO)
     
-    # Create tables
-    with app.app_context():
-        project_db.create_all()
-        client_db.create_all()
-        valuation_db.create_all()
-    
-    # Register blueprints
-    app.register_blueprint(projects_bp, url_prefix='/api')
-    app.register_blueprint(clients_bp, url_prefix='/api')
-    app.register_blueprint(ai_valuation_bp, url_prefix='/api')
-    app.register_blueprint(auth_bp, url_prefix='/api')
-    
     # Serve React app
     @app.route('/')
     def serve_react_app():
         """Serve React app index.html"""
-        return send_from_directory(app.static_folder, 'index.html')
+        try:
+            return send_from_directory(app.static_folder, 'index.html')
+        except Exception as e:
+            app.logger.error(f"Error serving index.html: {str(e)}")
+            return f"""
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>ESKLENCHEN - Inversión Inmobiliaria</title>
+                <style>
+                    body {{
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+                        color: white;
+                        min-height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }}
+                    .container {{
+                        text-align: center;
+                        max-width: 800px;
+                        padding: 40px 20px;
+                    }}
+                    .logo {{
+                        font-size: 3rem;
+                        font-weight: bold;
+                        margin-bottom: 20px;
+                        color: #ffd700;
+                    }}
+                    .tagline {{
+                        font-size: 1.5rem;
+                        margin-bottom: 30px;
+                        opacity: 0.9;
+                    }}
+                    .services {{
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                        gap: 20px;
+                        margin: 40px 0;
+                    }}
+                    .service {{
+                        background: rgba(255, 255, 255, 0.1);
+                        padding: 20px;
+                        border-radius: 10px;
+                        backdrop-filter: blur(10px);
+                    }}
+                    .contact {{
+                        margin-top: 40px;
+                        padding: 20px;
+                        background: rgba(255, 215, 0, 0.1);
+                        border-radius: 10px;
+                    }}
+                    .phone {{
+                        font-size: 1.5rem;
+                        font-weight: bold;
+                        color: #ffd700;
+                        margin: 10px 0;
+                    }}
+                    .badges {{
+                        display: flex;
+                        justify-content: center;
+                        gap: 20px;
+                        margin-top: 30px;
+                        flex-wrap: wrap;
+                    }}
+                    .badge {{
+                        background: rgba(255, 255, 255, 0.2);
+                        padding: 10px 15px;
+                        border-radius: 20px;
+                        font-size: 0.9rem;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="logo">ESKLENCHEN</div>
+                    <div class="tagline">Inversión Inmobiliaria Inteligente</div>
+                    
+                    <div class="services">
+                        <div class="service">
+                            <h3>🏠 Reforma sin Coste</h3>
+                            <p>Reformamos tu propiedad sin inversión inicial. Recuperas la inversión con la venta.</p>
+                        </div>
+                        <div class="service">
+                            <h3>📊 Análisis con IA</h3>
+                            <p>Valoraciones automáticas con inteligencia artificial y análisis de mercado.</p>
+                        </div>
+                        <div class="service">
+                            <h3>💼 Gestión Integral</h3>
+                            <p>Nos encargamos de todo: compra, reforma, gestión y venta de propiedades.</p>
+                        </div>
+                        <div class="service">
+                            <h3>⭐ Experiencias Premium</h3>
+                            <p>Servicios de alta calidad para huéspedes y máxima rentabilidad.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contact">
+                        <h3>Contacta con Nosotros</h3>
+                        <div class="phone">📞 +34 624 737 299</div>
+                        <p>contact@esklenchen.com</p>
+                        <p>Especialistas en inversión inmobiliaria con más de 10 años de experiencia</p>
+                    </div>
+                    
+                    <div class="badges">
+                        <div class="badge">🔒 SSL Secure</div>
+                        <div class="badge">🛡️ GDPR Compliant</div>
+                        <div class="badge">💳 Secure Payment</div>
+                        <div class="badge">✅ Verified Business</div>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
     
     @app.route('/<path:path>')
     def serve_react_static(path):
@@ -66,7 +149,7 @@ def create_app():
             return send_from_directory(app.static_folder, path)
         except:
             # Fallback to index.html for SPA routing
-            return send_from_directory(app.static_folder, 'index.html')
+            return serve_react_app()
     
     # Health check endpoint
     @app.route('/api/health', methods=['GET'])
@@ -78,12 +161,10 @@ def create_app():
             'version': '3.0.0',
             'timestamp': datetime.utcnow().isoformat(),
             'features': {
-                'projects_management': True,
-                'client_crm': True,
-                'ai_valuation': True,
-                'pdf_generation': True,
-                'user_authentication': True,
-                'analytics': True
+                'contact_forms': True,
+                'property_analysis': True,
+                'renovation_proposals': True,
+                'health_monitoring': True
             }
         })
     
@@ -97,7 +178,6 @@ def create_app():
             # Log contact submission
             app.logger.info(f"Contact form submission: {data.get('email', 'unknown')}")
             
-            # In production, you might want to save to database or send email
             contact_data = {
                 'name': data.get('name'),
                 'email': data.get('email'),
@@ -106,6 +186,9 @@ def create_app():
                 'form_type': data.get('form_type', 'general'),
                 'timestamp': datetime.utcnow().isoformat()
             }
+            
+            # Log the contact data
+            app.logger.info(f"Contact data received: {contact_data}")
             
             return jsonify({
                 'success': True,
@@ -120,159 +203,123 @@ def create_app():
                 'error': 'Error procesando el formulario'
             }), 500
     
-    # PDF generation endpoints
-    @app.route('/api/generate-pdf/valuation/<int:valuation_id>', methods=['GET'])
-    def generate_valuation_pdf(valuation_id):
-        """Generate PDF for property valuation"""
+    # Property analysis endpoint
+    @app.route('/api/property-analysis', methods=['POST'])
+    def property_analysis():
+        """Handle property analysis requests"""
         try:
-            from src.models.ai_valuation import PropertyValuation
+            data = request.get_json()
             
-            valuation = PropertyValuation.query.get_or_404(valuation_id)
+            # Log analysis request
+            app.logger.info(f"Property analysis request: {data.get('location', 'unknown')}")
             
-            # Create reports directory if it doesn't exist
-            reports_dir = os.path.join(os.getcwd(), 'reports')
-            os.makedirs(reports_dir, exist_ok=True)
+            # Simulate AI analysis
+            surface = float(data.get('surface', 80))
+            rooms = int(data.get('rooms', 3))
+            location = data.get('location', 'Barcelona')
             
-            # Generate PDF
-            pdf_generator = ESKLENCHENPDFGenerator()
-            filename = f"valoracion_{valuation_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            output_path = os.path.join(reports_dir, filename)
+            # Simple valuation algorithm
+            base_price_per_m2 = {
+                'Barcelona': 4500,
+                'Madrid': 4200,
+                'Valencia': 2800,
+                'Sevilla': 2500,
+                'Bilbao': 3800,
+                'Badalona': 3200
+            }.get(location, 3000)
             
-            success, message = pdf_generator.generate_property_valuation_report(
-                valuation.to_dict(), 
-                output_path
-            )
+            estimated_value = surface * base_price_per_m2
+            renovation_cost = estimated_value * 0.15  # 15% for renovation
+            potential_value = estimated_value * 1.25  # 25% increase after renovation
+            roi_percentage = ((potential_value - estimated_value - renovation_cost) / (estimated_value + renovation_cost)) * 100
             
-            if success:
-                return send_file(
-                    output_path,
-                    as_attachment=True,
-                    download_name=filename,
-                    mimetype='application/pdf'
-                )
-            else:
-                return jsonify({
-                    'success': False,
-                    'error': message
-                }), 500
-                
-        except Exception as e:
-            app.logger.error(f"Error generating valuation PDF: {str(e)}")
-            return jsonify({
-                'success': False,
-                'error': 'Error generando PDF'
-            }), 500
-    
-    @app.route('/api/generate-pdf/portfolio/<int:client_id>', methods=['GET'])
-    def generate_portfolio_pdf(client_id):
-        """Generate PDF for client portfolio"""
-        try:
-            from src.models.client import Client
-            from src.models.project import Project
+            analysis_result = {
+                'property_id': f"PROP{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                'estimated_value': round(estimated_value),
+                'renovation_cost': round(renovation_cost),
+                'potential_value': round(potential_value),
+                'roi_percentage': round(roi_percentage, 2),
+                'confidence_level': 87.5,
+                'analysis_factors': {
+                    'location_score': 8.5,
+                    'market_trend': 'positive',
+                    'renovation_potential': 'high',
+                    'rental_yield': 6.2
+                },
+                'recommendations': [
+                    'Excelente oportunidad de inversión',
+                    'Ubicación con alta demanda',
+                    'Potencial de revalorización alto',
+                    'Reforma recomendada para maximizar ROI'
+                ],
+                'timestamp': datetime.utcnow().isoformat()
+            }
             
-            client = Client.query.get_or_404(client_id)
-            projects = Project.query.filter_by(client_id=client_id).all()
-            
-            # Create reports directory if it doesn't exist
-            reports_dir = os.path.join(os.getcwd(), 'reports')
-            os.makedirs(reports_dir, exist_ok=True)
-            
-            # Generate PDF
-            pdf_generator = ESKLENCHENPDFGenerator()
-            filename = f"portfolio_{client_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            output_path = os.path.join(reports_dir, filename)
-            
-            success, message = pdf_generator.generate_client_portfolio_report(
-                client.to_dict(include_sensitive=True),
-                [project.to_dict() for project in projects],
-                output_path
-            )
-            
-            if success:
-                return send_file(
-                    output_path,
-                    as_attachment=True,
-                    download_name=filename,
-                    mimetype='application/pdf'
-                )
-            else:
-                return jsonify({
-                    'success': False,
-                    'error': message
-                }), 500
-                
-        except Exception as e:
-            app.logger.error(f"Error generating portfolio PDF: {str(e)}")
-            return jsonify({
-                'success': False,
-                'error': 'Error generando PDF de portfolio'
-            }), 500
-    
-    # Dashboard stats endpoint
-    @app.route('/api/dashboard/stats', methods=['GET'])
-    def dashboard_stats():
-        """Get dashboard statistics"""
-        try:
-            from src.models.project import Project
-            from src.models.client import Client
-            from src.models.ai_valuation import PropertyValuation
-            
-            # Projects stats
-            total_projects = Project.query.count()
-            active_projects = Project.query.filter_by(status='active').count()
-            completed_projects = Project.query.filter_by(status='completed').count()
-            
-            # Clients stats
-            total_clients = Client.query.count()
-            active_clients = Client.query.filter_by(status='active').count()
-            
-            # Valuations stats
-            total_valuations = PropertyValuation.query.count()
-            recent_valuations = PropertyValuation.query.filter_by(status='completed').count()
-            
-            # Financial stats
-            total_investment = project_db.session.query(project_db.func.sum(Project.total_investment)).scalar() or 0
-            total_revenue = project_db.session.query(project_db.func.sum(Project.actual_revenue)).scalar() or 0
-            
-            # Recent activity
-            recent_projects = Project.query.order_by(Project.created_at.desc()).limit(5).all()
-            recent_clients = Client.query.order_by(Client.created_at.desc()).limit(5).all()
-            recent_vals = PropertyValuation.query.order_by(PropertyValuation.created_at.desc()).limit(5).all()
+            app.logger.info(f"Analysis completed: ROI {roi_percentage}%")
             
             return jsonify({
                 'success': True,
-                'stats': {
-                    'projects': {
-                        'total': total_projects,
-                        'active': active_projects,
-                        'completed': completed_projects
-                    },
-                    'clients': {
-                        'total': total_clients,
-                        'active': active_clients
-                    },
-                    'valuations': {
-                        'total': total_valuations,
-                        'completed': recent_valuations
-                    },
-                    'financial': {
-                        'total_investment': total_investment,
-                        'total_revenue': total_revenue,
-                        'total_profit': total_revenue - total_investment
-                    }
-                },
-                'recent_activity': {
-                    'projects': [project.to_dict() for project in recent_projects],
-                    'clients': [client.to_dict() for client in recent_clients],
-                    'valuations': [val.to_dict() for val in recent_vals]
-                }
+                'analysis': analysis_result
             })
             
         except Exception as e:
-            app.logger.error(f"Error getting dashboard stats: {str(e)}")
+            app.logger.error(f"Error in property analysis: {str(e)}")
             return jsonify({
                 'success': False,
-                'error': 'Error obteniendo estadísticas'
+                'error': 'Error realizando análisis'
+            }), 500
+    
+    # Renovation proposal endpoint
+    @app.route('/api/renovation-proposal', methods=['POST'])
+    def renovation_proposal():
+        """Handle renovation proposal requests"""
+        try:
+            data = request.get_json()
+            
+            # Log proposal request
+            app.logger.info(f"Renovation proposal request: {data.get('property_type', 'unknown')}")
+            
+            property_type = data.get('property_type', 'apartment')
+            budget = float(data.get('budget', 50000))
+            
+            # Generate renovation proposal
+            proposal = {
+                'proposal_id': f"RENOV{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                'property_type': property_type,
+                'estimated_budget': budget,
+                'timeline_weeks': 8,
+                'renovation_areas': [
+                    {'area': 'Cocina', 'cost': budget * 0.3, 'priority': 'high'},
+                    {'area': 'Baños', 'cost': budget * 0.25, 'priority': 'high'},
+                    {'area': 'Suelos', 'cost': budget * 0.2, 'priority': 'medium'},
+                    {'area': 'Pintura', 'cost': budget * 0.15, 'priority': 'medium'},
+                    {'area': 'Instalaciones', 'cost': budget * 0.1, 'priority': 'low'}
+                ],
+                'expected_roi': 25.5,
+                'financing_options': {
+                    'reforma_sin_coste': True,
+                    'payment_on_sale': True,
+                    'guaranteed_roi': True
+                },
+                'next_steps': [
+                    'Visita técnica gratuita',
+                    'Presupuesto detallado',
+                    'Planificación de obra',
+                    'Inicio de reforma'
+                ],
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+            return jsonify({
+                'success': True,
+                'proposal': proposal
+            })
+            
+        except Exception as e:
+            app.logger.error(f"Error in renovation proposal: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': 'Error generando propuesta'
             }), 500
     
     # Legal pages endpoints
